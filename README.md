@@ -461,4 +461,4 @@ The app uses Google's Gemini API to:
 Parv Jhanwar
 - GitHub: [prvcds](https://github.com/prvcds)
 - LinkedIn: [Profile](https://linkedin.com/in/parvjhanwar)
-- Email: parvjhanwar@example.com
+- Email: parvjhanwar@gmail.com
