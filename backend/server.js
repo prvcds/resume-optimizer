@@ -18,7 +18,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
+const authRoutes = require('./routes/auth');
+app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes); // convenience alias for testing tools like Postman/Bruno
 app.use('/api/resumes', require('./routes/resumes'));
 app.use('/api/jobs', require('./routes/jobs'));
 app.use('/api/comparisons', require('./routes/comparisons'));
