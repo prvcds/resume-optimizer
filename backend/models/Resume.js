@@ -1,19 +1,31 @@
 const mongoose = require('mongoose');
 
+// Constants for validation
+const MAX_RESUME_SIZE = 50000; // 50 KB in characters
+const MIN_RESUME_SIZE = 100; // Minimum 100 characters
+
 const ResumeSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true // Index for faster queries
   },
   title: {
     type: String,
     required: [true, 'Please add a resume title'],
-    trim: true
+    trim: true,
+    maxlength: [100, 'Title cannot exceed 100 characters']
   },
   content: {
     type: String,
-    required: [true, 'Please add resume content']
+    required: [true, 'Please add resume content'],
+    validate: {
+      validator: function(v) {
+        return v && v.length >= MIN_RESUME_SIZE && v.length <= MAX_RESUME_SIZE;
+      },
+      message: `Resume content must be between ${MIN_RESUME_SIZE} and ${MAX_RESUME_SIZE} characters`
+    }
   },
   parsedData: {
     personalInfo: {
