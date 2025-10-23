@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 const authRoutes = require('./routes/auth');
 const resumeRoutes = require('./routes/resumes');
+const jobRoutes = require('./routes/jobs');
 
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes); // convenience alias for testing tools like Postman/Bruno
@@ -27,7 +28,9 @@ app.use('/auth', authRoutes); // convenience alias for testing tools like Postma
 app.use('/api/resumes', resumeRoutes);
 app.use('/resume', resumeRoutes); // convenience alias: /resume/create, /resume/list, /resume/get/:id
 
-app.use('/api/jobs', require('./routes/jobs'));
+app.use('/api/jobs', jobRoutes);
+app.use('/job', jobRoutes); // convenience alias: /job/create, /job/list, /job/get/:id
+
 app.use('/api/comparisons', require('./routes/comparisons'));
 
 // Health check route
