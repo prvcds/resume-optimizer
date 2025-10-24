@@ -848,3 +848,220 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Job Form Specific */
+.job-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.job-form textarea {
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+/* Job Card */
+.job-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.job-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.job-card-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 1.5rem;
+}
+
+.job-card-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  word-break: break-word;
+}
+
+.job-company {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0.5rem 0 0 0;
+  font-size: 0.95rem;
+}
+
+.job-card-body {
+  padding: 1.5rem;
+  border-bottom: 1px solid #ecf0f1;
+}
+
+.job-card-body .item-date {
+  margin-bottom: 0.5rem;
+}
+
+.job-card-body .item-date:last-child {
+  margin-bottom: 0;
+}
+
+.job-card-actions {
+  padding: 1rem 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+/* Job Modal */
+.modal-subtitle {
+  color: #7f8c8d;
+  font-size: 0.95rem;
+  margin: 0.5rem 0 0 0;
+  font-weight: 400;
+}
+
+.job-metadata {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.job-metadata p {
+  margin: 0.5rem 0;
+  color: #2c3e50;
+}
+
+.job-metadata strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.external-link {
+  color: #3498db;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
+.job-description-preview h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+  margin-top: 0;
+}
+
+.job-text {
+  background: white;
+  border: 1px solid #ecf0f1;
+  border-radius: 4px;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #2c3e50;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.job-text p {
+  margin: 0;
+  min-height: 1.6em;
+}
+
+/* Paste for Comparison Section */
+.compare-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  border-left: 4px solid #f5576c;
+}
+
+.compare-section h2 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.compare-hint {
+  color: #7f8c8d;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.compare-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.compare-form textarea {
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  padding: 1rem;
+}
+
+.compare-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+}
+
+.compare-buttons .btn {
+  padding: 0.75rem 1.5rem;
+}
+
+/* Header Buttons Group */
+.header-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .header-buttons {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-buttons .btn {
+    width: 100%;
+  }
+
+  .content-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .content-header > div {
+    width: 100%;
+  }
+
+  .job-card-actions {
+    flex-direction: column;
+  }
+
+  .job-card-actions .btn {
+    width: 100%;
+  }
+
+  .compare-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .compare-buttons {
+    flex-direction: column;
+  }
+
+  .compare-buttons .btn {
+    width: 100%;
+  }
+}
