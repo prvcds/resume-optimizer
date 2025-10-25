@@ -383,10 +383,208 @@ Provide suggestions tailored to this job description.`;
   }
 }
 
+/**
+ * Perform detailed comparison for database storage
+ * Optimized for saving structured comparison data
+ * @param {string} resumeContent - Full resume text
+ * @param {string} jobContent - Full job description text
+ * @returns {Promise<Object>} - Detailed comparison analysis ready for database
+ */
+async function performDetailedComparison(resumeContent, jobContent) {
+  if (!resumeContent || typeof resumeContent !== 'string') {
+    throw new Error('Resume content must be a non-empty string');
+  }
+
+  if (!jobContent || typeof jobContent !== 'string') {
+    throw new Error('Job content must be a non-empty string');
+  }
+
+  const prompt = `You are an expert resume reviewer and ATS (Applicant Tracking System) specialist. Analyze the following resume against the job description and provide a detailed technical comparison. Return ONLY valid JSON (no markdown, no code blocks) with NO newlines between key-value pairs.
+
+RESUME:
+${resumeContent}
+
+JOB DESCRIPTION:
+${jobContent}
+
+Return ONLY this JSON structure (no markdown, no explanation):
+{
+  "matchScore": number between 0 and 100,
+  "matchPercentage": "XX%",
+  "matchLevel": "poor|fair|good|excellent|perfect",
+  "summary": "1-2 sentence overall fit assessment",
+  "skillsMatch": {
+    "matched": ["skill1 that candidate has that job needs", "skill2"],
+    "missing": ["critical skill missing", "desired skill missing"],
+    "percentage": number between 0-100
+  },
+  "experienceMatch": {
+    "score": number 0-100,
+    "yearsRequiredByJob": number if stated,
+    "yearsInResume": number estimated,
+    "details": "Brief assessment of experience fit"
+  },
+  "educationMatch": {
+    "score": number 0-100,
+    "required": "what job requires",
+    "hasInResume": "what resume shows",
+    "details": "Brief assessment"
+  },
+  "keywordMatch": {
+    "matched": ["keyword1", "keyword2"],
+    "missing": ["missing keyword1", "missing keyword2"],
+    "percentage": number 0-100
+  },
+  "strengths": [
+    "Strength 1 - how candidate is well-suited",
+    "Strength 2 - alignment with role"
+  ],
+  "weaknesses": [
+    "Weakness 1 - gap or concern",
+    "Weakness 2 - missing qualification"
+  ],
+  "recommendations": [
+    {
+      "category": "skills|experience|keywords|formatting|structure",
+      "priority": "high|medium|low",
+      "suggestion": "Specific, actionable recommendation"
+    }
+  ],
+  "optimizedSections": {
+    "summary": "Suggested professional summary tailored to job",
+    "skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+    "keywords": ["keyword1", "keyword2", "keyword3"]
+  }
+}`;
+
+  try {
+    console.log('Performing detailed comparison analysis with Gemini...');
+    const responseText = await callGemini(prompt);
+    
+    // Extract JSON from response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.warn('Could not extract JSON from detailed comparison response');
+      return getDefaultComparisonStructure();
+    }
+
+    const comparison = JSON.parse(jsonMatch[0]);
+    
+    // Validate and normalize the response
+    return normalizeComparisonData(comparison);
+  } catch (error) {
+    logError(error, 'performDetailedComparison');
+    throw new Error(`Failed to perform detailed comparison: ${error.message}`);
+  }
+}
+
+/**
+ * Normalize and validate comparison data
+ * @param {Object} data - Raw comparison data from Gemini
+ * @returns {Object} - Normalized comparison data
+ */
+function normalizeComparisonData(data) {
+  const normalized = {
+    matchScore: Math.min(100, Math.max(0, data.matchScore || 0)),
+    matchPercentage: data.matchPercentage || '0%',
+    matchLevel: ['poor', 'fair', 'good', 'excellent', 'perfect'].includes(data.matchLevel) 
+      ? data.matchLevel 
+      : 'fair',
+    summary: data.summary || 'Unable to generate summary',
+    skillsMatch: {
+      matched: Array.isArray(data.skillsMatch?.matched) ? data.skillsMatch.matched : [],
+      missing: Array.isArray(data.skillsMatch?.missing) ? data.skillsMatch.missing : [],
+      percentage: Math.min(100, Math.max(0, data.skillsMatch?.percentage || 0))
+    },
+    experienceMatch: {
+      score: Math.min(100, Math.max(0, data.experienceMatch?.score || 0)),
+      yearsRequiredByJob: data.experienceMatch?.yearsRequiredByJob || null,
+      yearsInResume: data.experienceMatch?.yearsInResume || null,
+      details: data.experienceMatch?.details || 'No details available'
+    },
+    educationMatch: {
+      score: Math.min(100, Math.max(0, data.educationMatch?.score || 0)),
+      required: data.educationMatch?.required || 'Not specified',
+      hasInResume: data.educationMatch?.hasInResume || 'Not specified',
+      details: data.educationMatch?.details || 'No details available'
+    },
+    keywordMatch: {
+      matched: Array.isArray(data.keywordMatch?.matched) ? data.keywordMatch.matched : [],
+      missing: Array.isArray(data.keywordMatch?.missing) ? data.keywordMatch.missing : [],
+      percentage: Math.min(100, Math.max(0, data.keywordMatch?.percentage || 0))
+    },
+    strengths: Array.isArray(data.strengths) ? data.strengths : [],
+    weaknesses: Array.isArray(data.weaknesses) ? data.weaknesses : [],
+    recommendations: Array.isArray(data.recommendations) 
+      ? data.recommendations.map(rec => ({
+          category: ['skills', 'experience', 'keywords', 'formatting', 'structure'].includes(rec.category)
+            ? rec.category
+            : 'skills',
+          priority: ['high', 'medium', 'low'].includes(rec.priority) ? rec.priority : 'medium',
+          suggestion: rec.suggestion || ''
+        }))
+      : [],
+    optimizedSections: {
+      summary: data.optimizedSections?.summary || '',
+      skills: Array.isArray(data.optimizedSections?.skills) ? data.optimizedSections.skills : [],
+      keywords: Array.isArray(data.optimizedSections?.keywords) ? data.optimizedSections.keywords : []
+    }
+  };
+
+  return normalized;
+}
+
+/**
+ * Get default comparison structure
+ * Used as fallback if Gemini response parsing fails
+ * @returns {Object} - Default comparison structure
+ */
+function getDefaultComparisonStructure() {
+  return {
+    matchScore: 0,
+    matchPercentage: '0%',
+    matchLevel: 'poor',
+    summary: 'Unable to perform comparison. Please try again.',
+    skillsMatch: {
+      matched: [],
+      missing: [],
+      percentage: 0
+    },
+    experienceMatch: {
+      score: 0,
+      yearsRequiredByJob: null,
+      yearsInResume: null,
+      details: 'Unable to assess'
+    },
+    educationMatch: {
+      score: 0,
+      required: 'Unknown',
+      hasInResume: 'Unknown',
+      details: 'Unable to assess'
+    },
+    keywordMatch: {
+      matched: [],
+      missing: [],
+      percentage: 0
+    },
+    strengths: [],
+    weaknesses: [],
+    recommendations: [],
+    optimizedSections: {
+      summary: '',
+      skills: [],
+      keywords: []
+    }
+  };
+}
+
 module.exports = {
   callGemini,
   analyzeResume,
   analyzeJob,
   compareResumeToJob,
-  generateImprovementSuggestions
+  generateImprovementSuggestions,
+  performDetailedComparison,
+  normalizeComparisonData,
+  getDefaultComparisonStructure
 };
