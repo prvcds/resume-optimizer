@@ -33,6 +33,9 @@ app.use('/job', jobRoutes); // convenience alias: /job/create, /job/list, /job/g
 
 app.use('/api/comparisons', require('./routes/comparisons'));
 
+// Gemini API test routes (remove in production)
+app.use('/api/test/gemini', require('./routes/gemini-test'));
+
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Resume Optimizer API is running' });
