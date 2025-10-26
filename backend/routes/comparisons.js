@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 const Comparison = require('../models/Comparison');
 const Resume = require('../models/Resume');
 const JobPosting = require('../models/JobPosting');
+const { performDetailedComparison } = require('../utils/gemini');
 const { protect } = require('../middleware/auth');
 
 // @route   GET /api/comparisons
@@ -47,47 +49,111 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
+// Validation middleware for comparison creation
+const comparisonValidators = [
+  body('resumeId')
+    .notEmpty().withMessage('Resume ID is required')
+    .isMongoId().withMessage('Invalid resume ID'),
+  body('jobPostingId')
+    .notEmpty().withMessage('Job posting ID is required')
+    .isMongoId().withMessage('Invalid job posting ID')
+];
+
 // @route   POST /api/comparisons
-// @desc    Create new comparison (analyze resume against job posting)
+// @desc    Create new comparison (analyze resume against job posting using Gemini AI)
 // @access  Private
-router.post('/', protect, async (req, res) => {
+router.post('/', protect, comparisonValidators, async (req, res) => {
   try {
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array().map(err => ({ field: err.param, message: err.msg }))
+      });
+    }
+
     const { resumeId, jobPostingId } = req.body;
 
     // Verify resume exists and belongs to user
     const resume = await Resume.findById(resumeId);
-    if (!resume || resume.user.toString() !== req.user.id) {
+    if (!resume) {
       return res.status(404).json({ success: false, message: 'Resume not found' });
+    }
+
+    if (resume.user.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this resume' });
     }
 
     // Verify job posting exists and belongs to user
     const jobPosting = await JobPosting.findById(jobPostingId);
-    if (!jobPosting || jobPosting.user.toString() !== req.user.id) {
+    if (!jobPosting) {
       return res.status(404).json({ success: false, message: 'Job posting not found' });
     }
 
-    // TODO: Implement Gemini AI analysis here (Week 2)
-    // For now, create a placeholder comparison
+    if (jobPosting.user.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Not authorized to access this job posting' });
+    }
+
+    // Perform Gemini AI analysis
+    console.log('Starting detailed comparison analysis...');
+    
+    const analysisResult = await performDetailedComparison(
+      resume.content,
+      jobPosting.description
+    );
+
+    console.log('Analysis complete. Match score:', analysisResult.matchScore);
+
+    // Create comparison record in database
     const comparison = await Comparison.create({
       user: req.user.id,
       resume: resumeId,
       jobPosting: jobPostingId,
       analysis: {
-        matchScore: 0,
-        skillsMatch: { matched: [], missing: [], percentage: 0 },
-        experienceMatch: { score: 0, details: 'Analysis pending' },
-        educationMatch: { score: 0, details: 'Analysis pending' },
-        keywordMatch: { matched: [], missing: [], percentage: 0 },
-        strengths: [],
-        weaknesses: [],
-        recommendations: []
-      }
+        matchScore: analysisResult.matchScore,
+        skillsMatch: analysisResult.skillsMatch,
+        experienceMatch: analysisResult.experienceMatch,
+        educationMatch: analysisResult.educationMatch,
+        keywordMatch: analysisResult.keywordMatch,
+        strengths: analysisResult.strengths,
+        weaknesses: analysisResult.weaknesses,
+        recommendations: analysisResult.recommendations,
+        optimizedSections: analysisResult.optimizedSections
+      },
+      geminiResponse: analysisResult
     });
 
-    res.status(201).json({ success: true, data: comparison });
+    console.log('Comparison saved to database:', comparison._id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Comparison created successfully',
+      data: comparison
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error('Comparison creation error:', error);
+    
+    // Handle specific error types
+    if (error.message.includes('rate limit')) {
+      return res.status(429).json({
+        success: false,
+        message: 'API rate limited. Please try again in a moment.'
+      });
+    }
+
+    if (error.message.includes('API authentication')) {
+      return res.status(401).json({
+        success: false,
+        message: 'API authentication failed. Please check configuration.'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create comparison',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
@@ -113,6 +179,63 @@ router.delete('/:id', protect, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   POST /api/comparisons/analyze/quick
+// @desc    Quick comparison without saving to database (for testing or preview)
+// @access  Private
+router.post('/analyze/quick', protect, async (req, res) => {
+  try {
+    const { resumeContent, jobContent } = req.body;
+
+    if (!resumeContent || typeof resumeContent !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'resumeContent is required and must be a string'
+      });
+    }
+
+    if (!jobContent || typeof jobContent !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'jobContent is required and must be a string'
+      });
+    }
+
+    console.log('Starting quick comparison analysis...');
+    
+    const analysis = await performDetailedComparison(resumeContent, jobContent);
+
+    console.log('Quick analysis complete. Match score:', analysis.matchScore);
+
+    res.json({
+      success: true,
+      message: 'Analysis completed',
+      data: analysis
+    });
+  } catch (error) {
+    console.error('Quick comparison error:', error);
+    
+    if (error.message.includes('rate limit')) {
+      return res.status(429).json({
+        success: false,
+        message: 'API rate limited. Please try again in a moment.'
+      });
+    }
+
+    if (error.message.includes('API authentication')) {
+      return res.status(401).json({
+        success: false,
+        message: 'API authentication failed.'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to analyze',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
