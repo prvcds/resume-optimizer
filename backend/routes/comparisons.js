@@ -184,8 +184,8 @@ router.delete('/:id', protect, async (req, res) => {
 
 // @route   POST /api/comparisons/analyze/quick
 // @desc    Quick comparison without saving to database (for testing or preview)
-// @access  Private
-router.post('/analyze/quick', protect, async (req, res) => {
+// @access  Public (no auth required for quick testing)
+router.post('/analyze/quick', async (req, res) => {
   try {
     const { resumeContent, jobContent } = req.body;
 
