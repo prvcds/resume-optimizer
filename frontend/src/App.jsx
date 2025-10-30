@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Resumes from './pages/Resumes';
 import Jobs from './pages/Jobs';
 import Comparisons from './pages/Comparisons';
+import CompareResume from './pages/CompareResume';
 import PrivateRoute from './components/PrivateRoute';
 import './App.css';
 
@@ -40,6 +41,11 @@ function App() {
               <Route path="/comparisons" element={
                 <PrivateRoute>
                   <Comparisons />
+                </PrivateRoute>
+              } />
+              <Route path="/compare" element={
+                <PrivateRoute>
+                  <CompareResume />
                 </PrivateRoute>
               } />
               <Route path="*" element={<Navigate to="/" />} />
