@@ -1,9 +1,25 @@
-import { useContext } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
+import axios from 'axios';
 
 const Dashboard = () => {
   const { user } = useContext(AuthContext);
+  const [stats, setStats] = useState({ totalComparisons: 0, averageMatchScore: 0, recent: [] });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axios.get('/api/comparisons/history');
+        if (res.data && res.data.success) {
+          setStats({ totalComparisons: res.data.totalComparisons, averageMatchScore: res.data.averageMatchScore, recent: res.data.recent });
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard stats', err);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="page-container">
@@ -26,6 +42,25 @@ const Dashboard = () => {
             <h3>📊 Comparisons</h3>
             <p>Analyze your resumes against job postings</p>
           </Link>
+        </div>
+
+        <div className="dashboard-stats">
+          <div className="stat-card">
+            <h3>Total Comparisons</h3>
+            <p className="stat-value">{stats.totalComparisons}</p>
+          </div>
+          <div className="stat-card">
+            <h3>Average Match</h3>
+            <p className="stat-value">{stats.averageMatchScore}%</p>
+          </div>
+          <div className="stat-card">
+            <h3>Recent</h3>
+            <ul>
+              {stats.recent.map(r => (
+                <li key={r.id}>{new Date(r.createdAt).toLocaleDateString()} — {r.resumeTitle} / {r.jobTitle} — {r.matchScore}%</li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <div className="getting-started">

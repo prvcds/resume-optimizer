@@ -24,6 +24,40 @@ router.get('/', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/comparisons/history
+// @desc    Get comparison history summary + details for logged-in user
+// @access  Private
+router.get('/history', protect, async (req, res) => {
+  try {
+    const comparisons = await Comparison.find({ user: req.user.id })
+      .populate('resume', 'title')
+      .populate('jobPosting', 'title company')
+      .sort({ createdAt: -1 });
+
+    const total = comparisons.length;
+    const averageMatchScore = total === 0 ? 0 : Math.round(comparisons.reduce((sum, c) => sum + (c.analysis?.matchScore || 0), 0) / total);
+
+    const recent = comparisons.slice(0, 5).map(c => ({
+      id: c._id,
+      resumeTitle: c.resume?.title || 'N/A',
+      jobTitle: c.jobPosting ? `${c.jobPosting.title} - ${c.jobPosting.company}` : 'N/A',
+      matchScore: c.analysis?.matchScore || 0,
+      createdAt: c.createdAt
+    }));
+
+    res.json({
+      success: true,
+      totalComparisons: total,
+      averageMatchScore,
+      recent,
+      data: comparisons
+    });
+  } catch (error) {
+    console.error('History fetch error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // @route   GET /api/comparisons/:id
 // @desc    Get single comparison
 // @access  Private
