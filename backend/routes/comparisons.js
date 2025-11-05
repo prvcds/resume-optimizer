@@ -58,6 +58,41 @@ router.get('/history', protect, async (req, res) => {
   }
 });
 
+// @route   GET /api/comparisons/history/export
+// @desc    Export comparison history as CSV for logged-in user
+// @access  Private
+router.get('/history/export', protect, async (req, res) => {
+  try {
+    const comparisons = await Comparison.find({ user: req.user.id })
+      .populate('resume', 'title')
+      .populate('jobPosting', 'title company')
+      .sort({ createdAt: -1 });
+
+    // Build CSV rows
+    const rows = [];
+    rows.push(['Resume Title', 'Job Title', 'Company', 'Match Score', 'Created At']);
+
+    comparisons.forEach(c => {
+      rows.push([
+        c.resume?.title || '',
+        c.jobPosting?.title || '',
+        c.jobPosting?.company || '',
+        c.analysis?.matchScore != null ? String(c.analysis.matchScore) : '',
+        c.createdAt ? c.createdAt.toISOString() : ''
+      ]);
+    });
+
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="comparisons.csv"');
+    res.send(csv);
+  } catch (error) {
+    console.error('CSV export error:', error);
+    res.status(500).json({ success: false, message: 'Failed to export CSV' });
+  }
+});
+
 // @route   GET /api/comparisons/:id
 // @desc    Get single comparison
 // @access  Private

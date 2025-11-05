@@ -31,6 +31,24 @@ const ComparisonHistory = () => {
     }
   };
 
+  const exportCSV = async () => {
+    setError('');
+    try {
+      const res = await axios.get('/api/comparisons/history/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'comparisons.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export error', err);
+      setError(err.response?.data?.message || err.message || 'Failed to export CSV');
+    }
+  };
+
   const viewComparison = async (id) => {
     setError('');
     try {
@@ -84,6 +102,10 @@ const ComparisonHistory = () => {
               <li key={r.id}>{new Date(r.createdAt).toLocaleString()} — {r.resumeTitle} / {r.jobTitle} — {r.matchScore}%</li>
             ))}
           </ul>
+        </div>
+        <div className="stat-card">
+          <h3>Export</h3>
+          <button className="btn btn-secondary" onClick={exportCSV}>Export CSV</button>
         </div>
       </div>
 
