@@ -31,6 +31,9 @@ app.use('/resume', resumeRoutes); // convenience alias: /resume/create, /resume/
 app.use('/api/jobs', jobRoutes);
 app.use('/job', jobRoutes); // convenience alias: /job/create, /job/list, /job/get/:id
 
+// Scraping/test routes for job fetching
+app.use('/api/jobs', require('./routes/scrape'));
+
 app.use('/api/comparisons', require('./routes/comparisons'));
 
 // Gemini API test routes (remove in production)
