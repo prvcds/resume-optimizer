@@ -4,11 +4,7 @@ const cheerio = require('cheerio');
 /**
  * Simple scraper helper to fetch a job posting and extract basic fields.
  * This is intentionally small and resilient: it returns best-effort fields.
- *
- * Currently supported sites: weworkremotely.com (public listings). For other
- * sites selectors may need to be adjusted.
  */
-
 async function fetchJobFromUrl(url) {
   if (!url || typeof url !== 'string') throw new Error('URL is required');
 
@@ -27,50 +23,31 @@ async function fetchJobFromUrl(url) {
     description: null
   };
 
-  // Try WeWorkRemotely patterns
-  // Title
-  job.title = $('h1').first().text().trim() || job.title;
-
-  // Company - often available in .company or .company-name
-  job.company = $('.company').first().text().trim() || $('.company-name').first().text().trim() || job.company;
-
-  // Location - try common selectors
+  // Try common patterns
+  job.title = $('meta[property="og:title"]').attr('content') || $('h1').first().text().trim() || $('title').text().trim() || job.title;
+  job.company = $('.company').first().text().trim() || $('.company-name').first().text().trim() || $('meta[property="og:site_name"]').attr('content') || job.company;
   job.location = $('.location').first().text().trim() || $('[itemprop="jobLocation"]').text().trim() || job.location;
-
-  // Date posted
   job.datePosted = $('time').first().attr('datetime') || $('time').first().text().trim() || job.datePosted;
 
-  // Description - try main content blocks
-  const descCandidates = [
-    '.listing-container',
-    '.listing-content',
-    '.description',
-    '#job-listing',
-    '[data-job-description]'
-  ];
-
+  const descCandidates = ['.listing-container', '.listing-content', '.description', '#job-listing', '[data-job-description]', '[itemprop="description"]'];
   for (const sel of descCandidates) {
     const block = $(sel).first();
-    if (block && block.length) {
-      // Get text while preserving some line breaks
+    if (block && block.length && block.text().trim().length > 50) {
       job.description = block.text().trim();
       break;
     }
   }
 
-  // Fallback: use the largest <div> by text length
+  // Fallback: meta description or body
+  if (!job.description) job.description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || null;
   if (!job.description) {
-    let largest = '';
-    $('div').each((i, el) => {
-      const t = $(el).text().trim();
-      if (t.length > largest.length) largest = t;
-    });
-    job.description = largest.slice(0, 20000) || null;
+    const bodyText = $('body').text().replace(/\s+/g, ' ').trim();
+    job.description = bodyText ? bodyText.substring(0, 45000) : null;
   }
+
+  if (job.description && job.description.length > 50000) job.description = job.description.substring(0, 50000);
 
   return job;
 }
 
-module.exports = {
-  fetchJobFromUrl
-};
+module.exports = { fetchJobFromUrl };
